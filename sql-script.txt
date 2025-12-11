@@ -1,0 +1,153 @@
+-- 1. TẠO DATABASE
+DROP DATABASE IF EXISTS HotelBookingDB;
+CREATE DATABASE HotelBookingDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE HotelBookingDB;
+
+-- 2. TẠO CÁC BẢNG (TABLES)
+
+-- Bảng Users: Lưu trữ thông tin Admin và Khách hàng
+CREATE TABLE Users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL, -- Trong thực tế nên mã hóa MD5/BCrypt
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role ENUM('admin', 'customer') NOT NULL DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng Hotels: Thông tin khách sạn
+CREATE TABLE Hotels (
+    hotel_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(150) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng Rooms: Phòng thuộc khách sạn
+CREATE TABLE Rooms (
+    room_id INT PRIMARY KEY AUTO_INCREMENT,
+    hotel_id INT NOT NULL,
+    room_name VARCHAR(50) NOT NULL, -- Ví dụ: 101, 102, VIP-01
+    price DECIMAL(10, 2) NOT NULL,
+    capacity INT NOT NULL, -- Số người tối đa
+    status ENUM('available', 'maintenance', 'occupied') DEFAULT 'available',
+    description TEXT,
+    FOREIGN KEY (hotel_id) REFERENCES Hotels(hotel_id) ON DELETE CASCADE
+);
+
+-- Bảng Services: Dịch vụ đi kèm
+CREATE TABLE Services (
+    service_id INT PRIMARY KEY AUTO_INCREMENT,
+    hotel_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (hotel_id) REFERENCES Hotels(hotel_id) ON DELETE CASCADE
+);
+
+-- Bảng Bookings: Đơn đặt phòng tổng (Master)
+CREATE TABLE Bookings (
+    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    checkin_date DATE NOT NULL,
+    checkout_date DATE NOT NULL,
+    payment_status ENUM('paid', 'unpaid') DEFAULT 'unpaid',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- Bảng BookingRooms: Chi tiết các phòng trong 1 booking
+-- (Khách có thể đặt nhiều phòng trong 1 đơn)
+CREATE TABLE BookingRooms (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    room_id INT NOT NULL,
+    price_per_night DECIMAL(10, 2) NOT NULL, -- Lưu giá tại thời điểm đặt để tránh giá phòng thay đổi sau này
+    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES Rooms(room_id) ON DELETE CASCADE
+);
+
+-- Bảng BookingServices: Chi tiết dịch vụ đã đặt
+CREATE TABLE BookingServices (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    service_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES Services(service_id) ON DELETE CASCADE
+);
+
+-- Bảng BookingGuests: Danh sách khách ở thực tế + Mã Check-in
+CREATE TABLE BookingGuests (
+    guest_id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    checkin_code VARCHAR(20) NOT NULL UNIQUE, -- Mã duy nhất để checkin
+    checkin_status ENUM('pending', 'checked_in', 'checked_out') DEFAULT 'pending',
+    FOREIGN KEY (booking_id) REFERENCES Bookings(booking_id) ON DELETE CASCADE
+);
+
+-- 3. DỮ LIỆU MẪU (SEED DATA)
+
+-- Thêm Users (Mật khẩu demo: 123456)
+INSERT INTO Users (username, password, full_name, email, role) VALUES 
+('admin', '123456', 'System Administrator', 'admin@hotel.com', 'admin'),
+('customer1', '123456', 'Nguyen Van A', 'khachhang1@gmail.com', 'customer'),
+('customer2', '123456', 'Tran Thi B', 'khachhang2@gmail.com', 'customer');
+
+-- Thêm Hotels
+INSERT INTO Hotels (name, address, description) VALUES 
+('Luxury Ocean Danang', '123 Vo Nguyen Giap, Da Nang', 'Khach san 5 sao view bien tuyet dep'),
+('Hanoi Old Quarter Hotel', '45 Hang Bong, Ha Noi', 'Khach san co kinh giua long thu do');
+
+-- Thêm Rooms (Cho Luxury Ocean Danang - ID 1)
+INSERT INTO Rooms (hotel_id, room_name, price, capacity, status) VALUES 
+(1, '101 - Standard', 500000, 2, 'available'),
+(1, '102 - Standard', 500000, 2, 'available'),
+(1, '201 - Deluxe', 1200000, 4, 'available'), 
+(1, '202 - Deluxe', 1200000, 4, 'maintenance'), -- Đang sửa chữa
+(1, '301 - Family Suite', 2500000, 6, 'available');
+
+-- Thêm Rooms (Cho Hanoi Old Quarter Hotel - ID 2)
+INSERT INTO Rooms (hotel_id, room_name, price, capacity, status) VALUES 
+(2, 'A1 - Single', 300000, 1, 'available'),
+(2, 'A2 - Double', 600000, 2, 'available'),
+(2, 'B1 - Group', 1000000, 5, 'available');
+
+-- Thêm Services
+INSERT INTO Services (hotel_id, name, description, price) VALUES 
+(1, 'Buffet Sang', 'Buffet quoc te', 200000),
+(1, 'Spa & Massage', 'Lieu trinh 60 phut', 500000),
+(2, 'Thue xe may', 'Xe tay ga moi', 150000);
+
+-- Thêm Booking Mẫu (Khách hàng 1 đặt 2 phòng tại khách sạn 1)
+-- Giả sử đặt từ ngày 2023-11-01 đến 2023-11-03 (2 đêm)
+INSERT INTO Bookings (user_id, total_amount, checkin_date, checkout_date, payment_status) VALUES 
+(2, 3400000, '2023-11-01', '2023-11-03', 'paid');
+
+-- Set Last Insert ID vào biến (để dùng cho các bảng con)
+SET @last_booking_id = LAST_INSERT_ID();
+
+-- Chi tiết phòng (Phòng 101 và 201)
+INSERT INTO BookingRooms (booking_id, room_id, price_per_night) VALUES 
+(@last_booking_id, 1, 500000),
+(@last_booking_id, 3, 1200000);
+
+-- Chi tiết khách (Có 3 người đi)
+INSERT INTO BookingGuests (booking_id, full_name, checkin_code, checkin_status) VALUES 
+(@last_booking_id, 'Nguyen Van A', 'CODE-A123', 'pending'),
+(@last_booking_id, 'Nguyen Van Con', 'CODE-B456', 'pending'),
+(@last_booking_id, 'Le Thi Vo', 'CODE-C789', 'pending');
+
+-- Chi tiết dịch vụ
+INSERT INTO BookingServices (booking_id, service_id, quantity, price) VALUES 
+(@last_booking_id, 1, 3, 200000); -- 3 suất buffet
+
+-- Thêm INDEX để tìm phòng trống nhanh hơn
+ALTER TABLE Bookings ADD INDEX(checkin_date);
+ALTER TABLE Bookings ADD INDEX(checkout_date);
+ALTER TABLE Rooms ADD INDEX(hotel_id);
