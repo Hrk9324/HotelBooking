@@ -399,6 +399,103 @@ public class BookingDAO extends BaseDAO {
     }
 
     /**
+     * Get guest information by check-in code (for admin check-in module).
+     * 
+     * @param code The check-in code
+     * @return BookingGuest with hotel name and dates, or null if not found
+     */
+    public BookingGuest getGuestByCode(String code) {
+        BookingGuest guest = null;
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+
+            String sql = "SELECT bg.guest_id, bg.booking_id, bg.full_name, bg.checkin_code, bg.checkin_status, " +
+                        "       b.checkin_date, b.checkout_date, " +
+                        "       h.name as hotel_name " +
+                        "FROM BookingGuests bg " +
+                        "JOIN Bookings b ON bg.booking_id = b.booking_id " +
+                        "JOIN BookingRooms br ON b.booking_id = br.booking_id " +
+                        "JOIN Rooms r ON br.room_id = r.room_id " +
+                        "JOIN Hotels h ON r.hotel_id = h.hotel_id " +
+                        "WHERE bg.checkin_code = ? " +
+                        "LIMIT 1";
+
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, code);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                guest = new BookingGuest();
+                guest.setGuestId(rs.getInt("guest_id"));
+                guest.setBookingId(rs.getInt("booking_id"));
+                guest.setFullName(rs.getString("full_name"));
+                guest.setCheckinCode(rs.getString("checkin_code"));
+                guest.setCheckinStatus(rs.getString("checkin_status"));
+                
+                // Set transient fields
+                guest.setHotelName(rs.getString("hotel_name"));
+                guest.setCheckInDate(rs.getDate("checkin_date"));
+                guest.setCheckOutDate(rs.getDate("checkout_date"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return guest;
+    }
+
+    /**
+     * Update guest check-in status by check-in code.
+     * 
+     * @param code The check-in code
+     * @param status The new status (e.g., "checked_in", "checked_out")
+     * @return true if update was successful, false otherwise
+     */
+    public boolean updateGuestStatus(String code, String status) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        boolean success = false;
+
+        try {
+            conn = getConnection();
+
+            String sql = "UPDATE BookingGuests SET checkin_status = ? WHERE checkin_code = ?";
+
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, status);
+            ps.setString(2, code);
+
+            int rowsAffected = ps.executeUpdate();
+            success = rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return success;
+    }
+
+    /**
      * Helper method to build SQL placeholders for IN clause
      * Example: buildPlaceholders(3) returns "?, ?, ?"
      */

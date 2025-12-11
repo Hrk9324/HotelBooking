@@ -1,6 +1,7 @@
 package model.bean;
 
 import java.sql.Timestamp;
+import java.sql.Date;
 
 public class BookingGuest {
     private int guestId;
@@ -9,6 +10,11 @@ public class BookingGuest {
     private String checkinCode;
     private String checkinStatus;
     private Timestamp createdAt;
+    
+    // Transient fields for display (not in DB)
+    private transient String hotelName;
+    private transient Date checkInDate;
+    private transient Date checkOutDate;
 
     // Empty constructor
     public BookingGuest() {
@@ -72,5 +78,30 @@ public class BookingGuest {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    // Transient field getters and setters
+    public String getHotelName() {
+        return hotelName;
+    }
+    
+    public void setHotelName(String hotelName) {
+        this.hotelName = hotelName;
+    }
+    
+    public Date getCheckInDate() {
+        return checkInDate;
+    }
+    
+    public void setCheckInDate(Date checkInDate) {
+        this.checkInDate = checkInDate;
+    }
+    
+    public Date getCheckOutDate() {
+        return checkOutDate;
+    }
+    
+    public void setCheckOutDate(Date checkOutDate) {
+        this.checkOutDate = checkOutDate;
     }
 }
