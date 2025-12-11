@@ -6,19 +6,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Management - Admin</title>
-    <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            padding-top: 56px;
+        }
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+        }
+        .nav-link {
+            color: #333;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .nav-link:hover {
+            background-color: #e9ecef;
+            color: #000;
+        }
+        .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3">
-                <jsp:include page="sidebar.jsp" />
-            </div>
+    <jsp:include page="sidebar.jsp" />
 
-            <!-- Main Content -->
-            <div class="col-md-9">
+    <main class="main-content">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
                     <h1 class="h2">Room Management</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
@@ -97,11 +114,8 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
+    </main>
 
-    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -7,7 +7,6 @@
             <span class="navbar-text text-white me-3">
                 Welcome, ${sessionScope.user.fullName}
             </span>
-            <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline-light btn-sm">Logout</a>
         </div>
     </div>
 </nav>
@@ -23,14 +22,20 @@
         </li>
         <li class="nav-item">
             <a href="${pageContext.request.contextPath}/admin/hotels" 
-               class="nav-link ${pageContext.request.requestURI.contains('hotels') ? 'active' : ''}">
+               class="nav-link ${(pageContext.request.requestURI.contains('hotel_list') || pageContext.request.requestURI.contains('hotel_form')) ? 'active' : ''}">
                 <i class="bi bi-building"></i> Manage Hotels
             </a>
         </li>
         <li class="nav-item">
             <a href="${pageContext.request.contextPath}/admin/rooms" 
-               class="nav-link ${pageContext.request.requestURI.contains('rooms') ? 'active' : ''}">
+               class="nav-link ${(pageContext.request.requestURI.contains('room_list') || pageContext.request.requestURI.contains('room_form')) ? 'active' : ''}">
                 <i class="bi bi-door-closed"></i> Manage Rooms
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="${pageContext.request.contextPath}/admin/checkin" 
+               class="nav-link ${pageContext.request.requestURI.contains('checkin') ? 'active' : ''}">
+                <i class="bi bi-person-check"></i> Check-in
             </a>
         </li>
         <li class="nav-item mt-3">

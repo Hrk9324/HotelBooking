@@ -8,13 +8,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Check-in</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
-            min-height: 100vh;
-            background-color: #f8f9fa;
+            padding-top: 56px;
         }
-        .content-wrapper {
-            margin-left: 250px;
+        .main-content {
+            margin-left: 280px;
             padding: 30px;
         }
         .search-card {
@@ -77,17 +77,26 @@
             padding-top: 30px;
             border-top: 2px solid #eee;
         }
-        @media (max-width: 768px) {
-            .content-wrapper {
-                margin-left: 0;
-            }
+        .nav-link {
+            color: #333;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .nav-link:hover {
+            background-color: #e9ecef;
+            color: #000;
+        }
+        .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
         }
     </style>
 </head>
 <body>
     <jsp:include page="sidebar.jsp" />
 
-    <div class="content-wrapper">
+    <main class="main-content">
         <h2 class="mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-person-check-fill me-2" viewBox="0 0 16 16" style="vertical-align: middle;">
                 <path fill-rule="evenodd" d="M15.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L12.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
@@ -304,7 +313,7 @@
                 </div>
             </div>
         </c:if>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

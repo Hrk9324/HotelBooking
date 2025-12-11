@@ -7,6 +7,7 @@
     <title>Admin Dashboard - Hotel Booking</title>
     <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
             padding-top: 56px;
@@ -72,9 +73,9 @@
                             <div class="col-md-4">
                                 <div class="card text-white bg-info mb-3">
                                     <div class="card-body">
-                                        <h5 class="card-title">System</h5>
-                                        <p class="card-text">System settings</p>
-                                        <a href="#" class="btn btn-light btn-sm">Settings</a>
+                                        <h5 class="card-title">Check-in</h5>
+                                        <p class="card-text">Manage guest check-ins</p>
+                                        <a href="${pageContext.request.contextPath}/admin/checkin" class="btn btn-light btn-sm">Go to Check-in</a>
                                     </div>
                                 </div>
                             </div>
