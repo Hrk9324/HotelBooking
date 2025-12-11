@@ -163,7 +163,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <h5>Hotel Booking System</h5>
-                    <p class="text-muted">Your trusted partner for finding the perfect accommodation.</p>
+                    <p class="text-white-50">Your trusted partner for finding the perfect accommodation.</p>
                 </div>
                 <div class="col-md-3">
                     <h6>Quick Links</h6>
