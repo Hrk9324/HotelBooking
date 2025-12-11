@@ -1,7 +1,7 @@
 package controller;
 
 import model.bean.User;
-import model.bo.UserBO;
+import model.dao.UserDAO;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -12,7 +12,7 @@ import java.io.IOException;
 
 @WebServlet("/register")
 public class RegisterServlet extends HttpServlet {
-    private UserBO userBO = new UserBO();
+    private UserDAO userDAO = new UserDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -38,7 +38,7 @@ public class RegisterServlet extends HttpServlet {
         // Role will be set to "customer" by default in UserDAO
 
         // Create user
-        userBO.createUser(user);
+        userDAO.createUser(user);
 
         // Redirect to login with success message
         response.sendRedirect(request.getContextPath() + "/login?success=1");

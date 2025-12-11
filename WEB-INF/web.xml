@@ -102,6 +102,11 @@
         <servlet-name>HistoryDetailServlet</servlet-name>
         <servlet-class>controller.client.HistoryDetailServlet</servlet-class>
     </servlet>
+    
+    <servlet>
+        <servlet-name>ProfileServlet</servlet-name>
+        <servlet-class>controller.client.ProfileServlet</servlet-class>
+    </servlet>
 
     <!-- ========================================= -->
     <!-- WELCOME FILE LIST                         -->
