@@ -13,13 +13,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class BookingDAO extends BaseDAO {
 
     /**
      * Creates a booking with full transaction management and concurrency control.
      * Fetches BOTH room and service prices from DB (security), re-verifies availability,
-     * and inserts booking with proper price columns in BookingRooms and BookingServices.
+     * and inserts booking with CORRECT total calculation: (Room Price * Nights) + Services.
      * 
      * @return booking_id on success, 0 on failure
      * @throws SQLException if room is already booked or transaction fails
@@ -39,12 +40,20 @@ public class BookingDAO extends BaseDAO {
             conn.setAutoCommit(false);
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
 
-            double totalAmount = 0.0;
+            // =============================================
+            // STEP 0: Calculate Number of Nights
+            // =============================================
+            long diffInMillies = Math.abs(checkOut.getTime() - checkIn.getTime());
+            long nights = TimeUnit.DAYS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+            if (nights < 1) nights = 1; // Minimum 1 night
+
+            System.out.println("DEBUG: Check-in: " + checkIn + ", Check-out: " + checkOut + ", Nights: " + nights);
 
             // =============================================
             // STEP 1: Fetch Room Prices from DB (Security)
             // =============================================
             Map<Integer, Double> roomPrices = new HashMap<>();
+            double totalRoomPerNight = 0.0;
             
             if (roomIds != null && !roomIds.isEmpty()) {
                 StringBuilder sql = new StringBuilder("SELECT room_id, price FROM Rooms WHERE room_id IN (");
@@ -63,7 +72,7 @@ public class BookingDAO extends BaseDAO {
                     int rId = rs.getInt("room_id");
                     double price = rs.getDouble("price");
                     roomPrices.put(rId, price);
-                    totalAmount += price;
+                    totalRoomPerNight += price;
                 }
                 rs.close();
                 ps.close();
@@ -79,6 +88,7 @@ public class BookingDAO extends BaseDAO {
             // STEP 2: Fetch Service Prices from DB (Security)
             // =============================================
             Map<Integer, Double> servicePrices = new HashMap<>();
+            double totalServiceCost = 0.0;
             
             if (serviceIds != null && !serviceIds.isEmpty()) {
                 StringBuilder sql = new StringBuilder("SELECT service_id, price FROM Services WHERE service_id IN (");
@@ -97,14 +107,22 @@ public class BookingDAO extends BaseDAO {
                     int sId = rs.getInt("service_id");
                     double price = rs.getDouble("price");
                     servicePrices.put(sId, price);
-                    totalAmount += price;
+                    totalServiceCost += price;
                 }
                 rs.close();
                 ps.close();
             }
 
             // =============================================
-            // STEP 3: Re-Verify Room Availability (Crucial)
+            // STEP 3: Calculate Grand Total (CORRECTED)
+            // Formula: (RoomPrice_PerNight * Nights) + Services
+            // =============================================
+            double grandTotal = (totalRoomPerNight * nights) + totalServiceCost;
+            
+            System.out.println("DEBUG: RoomTotal/Night: " + totalRoomPerNight + " * " + nights + " nights + ServiceTotal: " + totalServiceCost + " = Grand Total: " + grandTotal);
+
+            // =============================================
+            // STEP 4: Re-Verify Room Availability (Crucial)
             // =============================================
             if (roomIds != null && !roomIds.isEmpty()) {
                 String availabilitySQL = "SELECT COUNT(*) as conflict_count " +
@@ -132,13 +150,13 @@ public class BookingDAO extends BaseDAO {
             }
 
             // =============================================
-            // STEP 4: Insert Master Booking Record
+            // STEP 5: Insert Master Booking Record
             // =============================================
             String insertBooking = "INSERT INTO Bookings (user_id, total_amount, checkin_date, checkout_date, payment_status) " +
                                  "VALUES (?, ?, ?, ?, 'paid')";
             ps = conn.prepareStatement(insertBooking, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, userId);
-            ps.setDouble(2, totalAmount);
+            ps.setDouble(2, grandTotal);  // Use correct grand total
             ps.setDate(3, checkIn);
             ps.setDate(4, checkOut);
             ps.executeUpdate();
@@ -154,7 +172,7 @@ public class BookingDAO extends BaseDAO {
             ps.close();
 
             // =============================================
-            // STEP 5: Insert BookingRooms WITH price_per_night
+            // STEP 6: Insert BookingRooms WITH price_per_night
             // =============================================
             if (roomIds != null && !roomIds.isEmpty()) {
                 String insertRoom = "INSERT INTO BookingRooms (booking_id, room_id, price_per_night) VALUES (?, ?, ?)";
@@ -163,7 +181,7 @@ public class BookingDAO extends BaseDAO {
                     if (roomPrices.containsKey(rId)) {
                         ps.setInt(1, bookingId);
                         ps.setInt(2, rId);
-                        ps.setDouble(3, roomPrices.get(rId));
+                        ps.setDouble(3, roomPrices.get(rId));  // Store base price per night
                         ps.addBatch();
                     }
                 }
@@ -172,7 +190,7 @@ public class BookingDAO extends BaseDAO {
             }
 
             // =============================================
-            // STEP 6: Insert BookingServices WITH price
+            // STEP 7: Insert BookingServices WITH price
             // =============================================
             if (serviceIds != null && !serviceIds.isEmpty()) {
                 String insertService = "INSERT INTO BookingServices (booking_id, service_id, price, quantity) VALUES (?, ?, ?, 1)";
@@ -190,7 +208,7 @@ public class BookingDAO extends BaseDAO {
             }
 
             // =============================================
-            // STEP 7: Insert BookingGuests with UUID Codes
+            // STEP 8: Insert BookingGuests with UUID Codes
             // =============================================
             if (guestNames != null && !guestNames.isEmpty()) {
                 String insertGuest = "INSERT INTO BookingGuests (booking_id, full_name, checkin_code, checkin_status) VALUES (?, ?, ?, 'pending')";
@@ -207,7 +225,7 @@ public class BookingDAO extends BaseDAO {
             }
 
             // =============================================
-            // STEP 8: Commit Transaction
+            // STEP 9: Commit Transaction
             // =============================================
             conn.commit();
             return bookingId;
