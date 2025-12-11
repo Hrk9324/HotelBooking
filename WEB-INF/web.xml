@@ -59,6 +59,16 @@
         <servlet-name>AdminRoomServlet</servlet-name>
         <servlet-class>controller.admin.AdminRoomServlet</servlet-class>
     </servlet>
+    
+    <servlet>
+        <servlet-name>HotelDetailServlet</servlet-name>
+        <servlet-class>controller.client.HotelDetailServlet</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>BookingFormServlet</servlet-name>
+        <servlet-class>controller.client.BookingFormServlet</servlet-class>
+    </servlet>
 
     <!-- ========================================= -->
     <!-- WELCOME FILE LIST                         -->

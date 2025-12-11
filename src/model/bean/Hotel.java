@@ -1,10 +1,14 @@
 package model.bean;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Hotel {
     private int id;
     private String name;
     private String address;
     private String description;
+    private List<Room> availableRooms = new ArrayList<>(); // Transient field for search results
 
     // Empty constructor
     public Hotel() {
@@ -49,5 +53,13 @@ public class Hotel {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public List<Room> getAvailableRooms() {
+        return availableRooms;
+    }
+
+    public void setAvailableRooms(List<Room> availableRooms) {
+        this.availableRooms = availableRooms;
     }
 }
