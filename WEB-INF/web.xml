@@ -92,6 +92,11 @@
         <servlet-name>BookingSuccessServlet</servlet-name>
         <servlet-class>controller.client.BookingSuccessServlet</servlet-class>
     </servlet>
+    
+    <servlet>
+        <servlet-name>HistoryDetailServlet</servlet-name>
+        <servlet-class>controller.client.HistoryDetailServlet</servlet-class>
+    </servlet>
 
     <!-- ========================================= -->
     <!-- WELCOME FILE LIST                         -->

@@ -1,11 +1,14 @@
 package model.dao;
 
+import model.bean.Booking;
+import model.bean.BookingGuest;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -234,6 +237,165 @@ public class BookingDAO extends BaseDAO {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Get all bookings for a specific user with hotel name (summary list only, no guests).
+     * 
+     * @param userId The user ID to fetch bookings for
+     * @return List of Booking objects with hotelName populated
+     */
+    public List<Booking> getBookingsByUserId(int userId) {
+        List<Booking> bookings = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+
+            String bookingSql = "SELECT b.booking_id, b.user_id, b.checkin_date, b.checkout_date, " +
+                              "b.total_amount, b.payment_status, b.created_at, h.name as hotel_name " +
+                              "FROM Bookings b " +
+                              "JOIN BookingRooms br ON b.booking_id = br.booking_id " +
+                              "JOIN Rooms r ON br.room_id = r.room_id " +
+                              "JOIN Hotels h ON r.hotel_id = h.hotel_id " +
+                              "WHERE b.user_id = ? " +
+                              "GROUP BY b.booking_id " +
+                              "ORDER BY b.created_at DESC";
+
+            ps = conn.prepareStatement(bookingSql);
+            ps.setInt(1, userId);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Booking booking = new Booking();
+                booking.setBookingId(rs.getInt("booking_id"));
+                booking.setUserId(rs.getInt("user_id"));
+                booking.setCheckinDate(rs.getDate("checkin_date"));
+                booking.setCheckoutDate(rs.getDate("checkout_date"));
+                booking.setTotalAmount(rs.getDouble("total_amount"));
+                booking.setPaymentStatus(rs.getString("payment_status"));
+                booking.setCreatedAt(rs.getTimestamp("created_at"));
+                booking.setHotelName(rs.getString("hotel_name"));
+                bookings.add(booking);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return bookings;
+    }
+
+    /**
+     * Get a single booking by ID with hotel name.
+     * 
+     * @param bookingId The booking ID
+     * @return Booking object or null if not found
+     */
+    public Booking getBookingById(int bookingId) {
+        Booking booking = null;
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+
+            String bookingSql = "SELECT b.booking_id, b.user_id, b.checkin_date, b.checkout_date, " +
+                              "b.total_amount, b.payment_status, b.created_at, h.name as hotel_name " +
+                              "FROM Bookings b " +
+                              "JOIN BookingRooms br ON b.booking_id = br.booking_id " +
+                              "JOIN Rooms r ON br.room_id = r.room_id " +
+                              "JOIN Hotels h ON r.hotel_id = h.hotel_id " +
+                              "WHERE b.booking_id = ? " +
+                              "GROUP BY b.booking_id";
+
+            ps = conn.prepareStatement(bookingSql);
+            ps.setInt(1, bookingId);
+            rs = ps.executeQuery();
+
+            if (rs.next()) {
+                booking = new Booking();
+                booking.setBookingId(rs.getInt("booking_id"));
+                booking.setUserId(rs.getInt("user_id"));
+                booking.setCheckinDate(rs.getDate("checkin_date"));
+                booking.setCheckoutDate(rs.getDate("checkout_date"));
+                booking.setTotalAmount(rs.getDouble("total_amount"));
+                booking.setPaymentStatus(rs.getString("payment_status"));
+                booking.setCreatedAt(rs.getTimestamp("created_at"));
+                booking.setHotelName(rs.getString("hotel_name"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return booking;
+    }
+
+    /**
+     * Get all guests for a specific booking.
+     * 
+     * @param bookingId The booking ID
+     * @return List of BookingGuest objects
+     */
+    public List<BookingGuest> getGuestsByBookingId(int bookingId) {
+        List<BookingGuest> guests = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+
+            String guestSql = "SELECT guest_id, booking_id, full_name, checkin_code, checkin_status " +
+                            "FROM BookingGuests WHERE booking_id = ?";
+
+            ps = conn.prepareStatement(guestSql);
+            ps.setInt(1, bookingId);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                BookingGuest guest = new BookingGuest();
+                guest.setGuestId(rs.getInt("guest_id"));
+                guest.setBookingId(rs.getInt("booking_id"));
+                guest.setFullName(rs.getString("full_name"));
+                guest.setCheckinCode(rs.getString("checkin_code"));
+                guest.setCheckinStatus(rs.getString("checkin_status"));
+                guests.add(guest);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return guests;
     }
 
     /**
