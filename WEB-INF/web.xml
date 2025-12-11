@@ -64,6 +64,11 @@
     
     <!-- Client Module Servlets -->
     <servlet>
+        <servlet-name>SearchServlet</servlet-name>
+        <servlet-class>controller.client.SearchServlet</servlet-class>
+    </servlet>
+    
+    <servlet>
         <servlet-name>HotelDetailServlet</servlet-name>
         <servlet-class>controller.client.HotelDetailServlet</servlet-class>
     </servlet>
@@ -76,6 +81,11 @@
     <servlet>
         <servlet-name>ConfirmBookingServlet</servlet-name>
         <servlet-class>controller.client.ConfirmBookingServlet</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>HistoryServlet</servlet-name>
+        <servlet-class>controller.client.HistoryServlet</servlet-class>
     </servlet>
 
     <!-- ========================================= -->
