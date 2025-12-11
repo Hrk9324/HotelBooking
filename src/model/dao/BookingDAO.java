@@ -2,6 +2,7 @@ package model.dao;
 
 import model.bean.Booking;
 import model.bean.BookingGuest;
+import model.bean.BookingService;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -473,6 +474,55 @@ public class BookingDAO extends BaseDAO {
         }
 
         return guest;
+    }
+
+    /**
+     * Get all services for a specific booking with service names.
+     * 
+     * @param bookingId The booking ID
+     * @return List of BookingService objects with serviceName populated
+     */
+    public List<BookingService> getServicesByBookingId(int bookingId) {
+        List<BookingService> services = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+
+            String sql = "SELECT bs.booking_id, bs.service_id, bs.price, bs.quantity, s.name as service_name " +
+                       "FROM BookingServices bs " +
+                       "JOIN Services s ON bs.service_id = s.service_id " +
+                       "WHERE bs.booking_id = ?";
+
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, bookingId);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                BookingService service = new BookingService();
+                service.setBookingId(rs.getInt("booking_id"));
+                service.setServiceId(rs.getInt("service_id"));
+                service.setPrice(rs.getDouble("price"));
+                service.setQuantity(rs.getInt("quantity"));
+                service.setServiceName(rs.getString("service_name"));
+                services.add(service);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return services;
     }
 
     /**

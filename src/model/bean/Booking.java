@@ -17,6 +17,7 @@ public class Booking {
     // Transient fields (not in DB, used for View only)
     private String hotelName;
     private List<BookingGuest> guestList = new ArrayList<>();
+    private List<BookingService> serviceList = new ArrayList<>();
 
     // Empty constructor
     public Booking() {
@@ -106,5 +107,13 @@ public class Booking {
 
     public void setGuestList(List<BookingGuest> guestList) {
         this.guestList = guestList;
+    }
+
+    public List<BookingService> getServiceList() {
+        return serviceList;
+    }
+
+    public void setServiceList(List<BookingService> serviceList) {
+        this.serviceList = serviceList;
     }
 }

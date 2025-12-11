@@ -2,6 +2,7 @@ package controller.client;
 
 import model.bean.Booking;
 import model.bean.BookingGuest;
+import model.bean.BookingService;
 import model.bean.User;
 import model.dao.BookingDAO;
 
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @WebServlet("/history-detail")
 public class HistoryDetailServlet extends HttpServlet {
@@ -55,8 +57,29 @@ public class HistoryDetailServlet extends HttpServlet {
             List<BookingGuest> guests = bookingDAO.getGuestsByBookingId(bookingId);
             booking.setGuestList(guests);
 
-            // Set attribute and forward to detail page
+            // Fetch services for this booking
+            List<BookingService> services = bookingDAO.getServicesByBookingId(bookingId);
+            booking.setServiceList(services);
+
+            // Calculate number of nights
+            long diff = booking.getCheckoutDate().getTime() - booking.getCheckinDate().getTime();
+            long nights = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
+            if (nights < 1) nights = 1; // Minimum 1 night
+
+            // Calculate service cost total
+            double totalServiceCost = 0.0;
+            for (BookingService service : services) {
+                totalServiceCost += service.getPrice() * service.getQuantity();
+            }
+
+            // Calculate room cost (Total - Services = Room cost)
+            double totalRoomCost = booking.getTotalAmount() - totalServiceCost;
+
+            // Set attributes for JSP
             request.setAttribute("booking", booking);
+            request.setAttribute("nights", nights);
+            request.setAttribute("totalServiceCost", totalServiceCost);
+            request.setAttribute("totalRoomCost", totalRoomCost);
             request.getRequestDispatcher("/views/client/history_detail.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
