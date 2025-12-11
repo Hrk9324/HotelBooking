@@ -62,7 +62,7 @@ public class UserDAO extends BaseDAO {
             ps = conn.prepareStatement(sql);
             ps.setString(1, user.getFullName());
             ps.setString(2, user.getEmail());
-            ps.setInt(4, user.getId());
+            ps.setInt(3, user.getId());
             
             int rowsAffected = ps.executeUpdate();
             success = rowsAffected > 0;
@@ -99,6 +99,8 @@ public class UserDAO extends BaseDAO {
             if (rs.next()) {
                 String dbPassword = rs.getString("password");
                 isValid = dbPassword.equals(currentPassword);
+                System.out.print("DB password: " + dbPassword);
+                System.out.print("Current password: " + currentPassword);
             }
 
         } catch (SQLException e) {
