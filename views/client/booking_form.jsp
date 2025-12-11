@@ -40,13 +40,18 @@
             <h4 class="mb-3">Booking Summary</h4>
             
             <div class="row mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <p><strong>Check-in:</strong> ${checkin}</p>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <p><strong>Check-out:</strong> ${checkout}</p>
                 </div>
+                <div class="col-md-4">
+                    <p><strong>Duration:</strong> <span class="badge bg-info text-dark">${nights} Night(s)</span></p>
+                </div>
             </div>
+
+            <hr>
 
             <!-- Selected Rooms -->
             <h5 class="mt-3">Selected Rooms:</h5>
@@ -54,7 +59,7 @@
                 <c:forEach var="room" items="${selectedRooms}">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         ${room.roomName} (Capacity: ${room.capacity})
-                        <span class="badge bg-primary rounded-pill">$${room.price}</span>
+                        <span class="badge bg-primary rounded-pill">$${room.price}/night</span>
                     </li>
                 </c:forEach>
             </ul>
@@ -72,9 +77,23 @@
                 </ul>
             </c:if>
 
-            <!-- Total Price -->
-            <div class="text-end mt-4">
-                <h4>Total Price: <span class="total-price">$${totalPrice}</span></h4>
+            <hr>
+
+            <!-- Price Breakdown -->
+            <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Room Cost:</span>
+                    <span>$${roomTotalPerNight} × ${nights} night(s) = <strong>$${roomTotalPerNight * nights}</strong></span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Service Cost:</span>
+                    <span><strong>$${serviceTotal}</strong></span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <h4 class="mb-0">Grand Total:</h4>
+                    <h4 class="mb-0"><span class="total-price">$${totalPrice}</span></h4>
+                </div>
             </div>
         </div>
 

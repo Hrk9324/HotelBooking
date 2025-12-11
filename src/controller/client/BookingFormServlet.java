@@ -13,8 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @WebServlet("/booking-form")
 public class BookingFormServlet extends HttpServlet {
@@ -49,39 +51,53 @@ public class BookingFormServlet extends HttpServlet {
                 return;
             }
 
-            // Calculation logic
+            // Parse dates and calculate number of nights
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            java.util.Date checkInDate = sdf.parse(checkin);
+            java.util.Date checkOutDate = sdf.parse(checkout);
+            long diff = checkOutDate.getTime() - checkInDate.getTime();
+            long nights = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
+            if (nights < 1) nights = 1; // Minimum 1 night
+
+            // Process rooms and calculate room total per night
             List<Room> selectedRooms = new ArrayList<>();
-            double totalPrice = 0.0;
+            double roomTotalPerNight = 0.0;
             int totalCapacity = 0;
 
-            // Process rooms
             for (String roomIdStr : roomIds) {
                 int roomId = Integer.parseInt(roomIdStr);
                 Room room = roomDAO.getRoomById(roomId);
                 if (room != null) {
                     selectedRooms.add(room);
-                    totalPrice += room.getPrice();
+                    roomTotalPerNight += room.getPrice();
                     totalCapacity += room.getCapacity();
                 }
             }
 
-            // Process services
+            // Process services and calculate service total
             List<Service> selectedServices = new ArrayList<>();
+            double serviceTotal = 0.0;
             if (serviceIds != null) {
                 for (String serviceIdStr : serviceIds) {
                     int serviceId = Integer.parseInt(serviceIdStr);
                     Service service = serviceDAO.getServiceById(serviceId);
                     if (service != null) {
                         selectedServices.add(service);
-                        totalPrice += service.getPrice();
+                        serviceTotal += service.getPrice();
                     }
                 }
             }
 
+            // Calculate grand total: (Room Price/night * Nights) + Services
+            double grandTotal = (roomTotalPerNight * nights) + serviceTotal;
+
             // Set attributes
             request.setAttribute("selectedRooms", selectedRooms);
             request.setAttribute("selectedServices", selectedServices);
-            request.setAttribute("totalPrice", totalPrice);
+            request.setAttribute("nights", nights);
+            request.setAttribute("roomTotalPerNight", roomTotalPerNight);
+            request.setAttribute("serviceTotal", serviceTotal);
+            request.setAttribute("totalPrice", grandTotal);
             request.setAttribute("totalCapacity", totalCapacity);
             request.setAttribute("checkin", checkin);
             request.setAttribute("checkout", checkout);
