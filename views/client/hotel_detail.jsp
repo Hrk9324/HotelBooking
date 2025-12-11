@@ -47,7 +47,7 @@
                 <h3>${hotel.name}</h3>
             </div>
             <div class="card-body">
-                <p><strong>Location:</strong> ${hotel.location}</p>
+                <p><strong>Address:</strong> ${hotel.address}</p>
                 <p><strong>Description:</strong> ${hotel.description}</p>
                 <p><strong>Check-in:</strong> ${checkin} | <strong>Check-out:</strong> ${checkout}</p>
                 <p><strong>Guests:</strong> ${people} ${people > 1 ? 'people' : 'person'}</p>
