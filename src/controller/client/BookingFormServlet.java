@@ -2,7 +2,6 @@ package controller.client;
 
 import model.bean.Room;
 import model.bean.Service;
-import model.bean.User;
 import model.dao.RoomDAO;
 import model.dao.ServiceDAO;
 
