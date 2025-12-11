@@ -156,4 +156,45 @@ public class RoomDAO extends BaseDAO {
         }
         return rooms;
     }
+
+    public List<Room> getAvailableRoomsByHotel(int hotelId, java.sql.Date checkIn, java.sql.Date checkOut) {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT r.room_id, r.hotel_id, r.room_name, r.price, r.capacity, r.status, r.description, h.name AS hotel_name " +
+                     "FROM Rooms r " +
+                     "JOIN Hotels h ON r.hotel_id = h.hotel_id " +
+                     "WHERE r.status = 'available' " +
+                     "AND r.hotel_id = ? " +
+                     "AND r.room_id NOT IN (" +
+                     "    SELECT br.room_id " +
+                     "    FROM BookingRooms br " +
+                     "    JOIN Bookings b ON br.booking_id = b.booking_id " +
+                     "    WHERE b.checkin_date < ? AND b.checkout_date > ?" +
+                     ")";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, hotelId);
+            ps.setDate(2, checkOut);  // b.checkin_date < checkOut
+            ps.setDate(3, checkIn);   // b.checkout_date > checkIn
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Room room = new Room();
+                    room.setId(rs.getInt("room_id"));
+                    room.setHotelId(rs.getInt("hotel_id"));
+                    room.setRoomName(rs.getString("room_name"));
+                    room.setPrice(rs.getDouble("price"));
+                    room.setCapacity(rs.getInt("capacity"));
+                    room.setStatus(rs.getString("status"));
+                    room.setDescription(rs.getString("description"));
+                    room.setHotelName(rs.getString("hotel_name"));
+                    rooms.add(room);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rooms;
+    }
 }

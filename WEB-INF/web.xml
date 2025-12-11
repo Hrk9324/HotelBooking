@@ -25,6 +25,7 @@
     <!-- SERVLET DECLARATIONS                      -->
     <!-- ========================================= -->
     
+    <!-- Core & Auth Servlets -->
     <servlet>
         <servlet-name>HomeController</servlet-name>
         <servlet-class>controller.HomeController</servlet-class>
@@ -41,6 +42,12 @@
     </servlet>
     
     <servlet>
+        <servlet-name>LogoutServlet</servlet-name>
+        <servlet-class>controller.LogoutServlet</servlet-class>
+    </servlet>
+    
+    <!-- Admin Module Servlets -->
+    <servlet>
         <servlet-name>AdminDashboardServlet</servlet-name>
         <servlet-class>controller.admin.AdminDashboardServlet</servlet-class>
     </servlet>
@@ -51,15 +58,11 @@
     </servlet>
     
     <servlet>
-        <servlet-name>LogoutServlet</servlet-name>
-        <servlet-class>controller.LogoutServlet</servlet-class>
-    </servlet>
-    
-    <servlet>
         <servlet-name>AdminRoomServlet</servlet-name>
         <servlet-class>controller.admin.AdminRoomServlet</servlet-class>
     </servlet>
     
+    <!-- Client Module Servlets -->
     <servlet>
         <servlet-name>HotelDetailServlet</servlet-name>
         <servlet-class>controller.client.HotelDetailServlet</servlet-class>
@@ -68,6 +71,11 @@
     <servlet>
         <servlet-name>BookingFormServlet</servlet-name>
         <servlet-class>controller.client.BookingFormServlet</servlet-class>
+    </servlet>
+    
+    <servlet>
+        <servlet-name>ConfirmBookingServlet</servlet-name>
+        <servlet-class>controller.client.ConfirmBookingServlet</servlet-class>
     </servlet>
 
     <!-- ========================================= -->
