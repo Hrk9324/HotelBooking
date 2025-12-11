@@ -87,6 +87,11 @@
         <servlet-name>HistoryServlet</servlet-name>
         <servlet-class>controller.client.HistoryServlet</servlet-class>
     </servlet>
+    
+    <servlet>
+        <servlet-name>BookingSuccessServlet</servlet-name>
+        <servlet-class>controller.client.BookingSuccessServlet</servlet-class>
+    </servlet>
 
     <!-- ========================================= -->
     <!-- WELCOME FILE LIST                         -->

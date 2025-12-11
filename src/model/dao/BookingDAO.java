@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,8 @@ public class BookingDAO extends BaseDAO {
 
     /**
      * Creates a booking with full transaction management and concurrency control.
-     * Fetches room prices from DB first (security), re-verifies availability, 
-     * and inserts booking with price_per_night in BookingRooms.
+     * Fetches BOTH room and service prices from DB (security), re-verifies availability,
+     * and inserts booking with proper price columns in BookingRooms and BookingServices.
      * 
      * @return booking_id on success, 0 on failure
      * @throws SQLException if room is already booked or transaction fails
@@ -35,149 +36,166 @@ public class BookingDAO extends BaseDAO {
             conn.setAutoCommit(false);
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
 
-            // =============================================
-            // STEP A: Fetch Room Prices from DB (Security)
-            // =============================================
-            Map<Integer, Double> roomPriceMap = new HashMap<>();
-            double calculatedTotal = 0.0;
+            double totalAmount = 0.0;
 
+            // =============================================
+            // STEP 1: Fetch Room Prices from DB (Security)
+            // =============================================
+            Map<Integer, Double> roomPrices = new HashMap<>();
+            
             if (roomIds != null && !roomIds.isEmpty()) {
-                String roomPriceSQL = "SELECT room_id, price FROM Rooms WHERE room_id IN (" 
-                                    + buildPlaceholders(roomIds.size()) + ")";
-                ps = conn.prepareStatement(roomPriceSQL);
-                int paramIndex = 1;
-                for (Integer roomId : roomIds) {
-                    ps.setInt(paramIndex++, roomId);
+                StringBuilder sql = new StringBuilder("SELECT room_id, price FROM Rooms WHERE room_id IN (");
+                for (int i = 0; i < roomIds.size(); i++) {
+                    sql.append(i == 0 ? "?" : ", ?");
                 }
-                rs = ps.executeQuery();
+                sql.append(")");
                 
+                ps = conn.prepareStatement(sql.toString());
+                for (int i = 0; i < roomIds.size(); i++) {
+                    ps.setInt(i + 1, roomIds.get(i));
+                }
+                
+                rs = ps.executeQuery();
                 while (rs.next()) {
                     int rId = rs.getInt("room_id");
-                    double rPrice = rs.getDouble("price");
-                    roomPriceMap.put(rId, rPrice);
-                    calculatedTotal += rPrice;
+                    double price = rs.getDouble("price");
+                    roomPrices.put(rId, price);
+                    totalAmount += price;
                 }
                 rs.close();
                 ps.close();
 
                 // Validate all rooms exist
-                if (roomPriceMap.size() != roomIds.size()) {
+                if (roomPrices.size() != roomIds.size()) {
                     conn.rollback();
                     throw new SQLException("Some rooms are invalid or not found");
                 }
             }
 
             // =============================================
-            // STEP B: Re-Verify Room Availability (Crucial)
+            // STEP 2: Fetch Service Prices from DB (Security)
             // =============================================
-            String availabilitySQL = "SELECT COUNT(*) as conflict_count " +
-                                   "FROM BookingRooms br " +
-                                   "JOIN Bookings b ON br.booking_id = b.booking_id " +
-                                   "WHERE br.room_id IN (" + buildPlaceholders(roomIds.size()) + ") " +
-                                   "AND b.checkin_date < ? " +
-                                   "AND b.checkout_date > ?";
-
-            ps = conn.prepareStatement(availabilitySQL);
-            int paramIndex = 1;
-            for (Integer roomId : roomIds) {
-                ps.setInt(paramIndex++, roomId);
-            }
-            ps.setDate(paramIndex++, checkOut);  // b.checkin_date < checkOut
-            ps.setDate(paramIndex, checkIn);     // b.checkout_date > checkIn
-
-            rs = ps.executeQuery();
-            if (rs.next() && rs.getInt("conflict_count") > 0) {
-                conn.rollback();
-                throw new SQLException("One or more rooms are already booked for the selected dates");
-            }
-            rs.close();
-            ps.close();
-
-            // =============================================
-            // STEP C: Fetch Service Prices and Add to Total
-            // =============================================
+            Map<Integer, Double> servicePrices = new HashMap<>();
+            
             if (serviceIds != null && !serviceIds.isEmpty()) {
-                String servicePriceSQL = "SELECT SUM(price) as total_service_price FROM Services WHERE service_id IN (" 
-                                       + buildPlaceholders(serviceIds.size()) + ")";
-                ps = conn.prepareStatement(servicePriceSQL);
-                paramIndex = 1;
-                for (Integer serviceId : serviceIds) {
-                    ps.setInt(paramIndex++, serviceId);
+                StringBuilder sql = new StringBuilder("SELECT service_id, price FROM Services WHERE service_id IN (");
+                for (int i = 0; i < serviceIds.size(); i++) {
+                    sql.append(i == 0 ? "?" : ", ?");
                 }
+                sql.append(")");
+                
+                ps = conn.prepareStatement(sql.toString());
+                for (int i = 0; i < serviceIds.size(); i++) {
+                    ps.setInt(i + 1, serviceIds.get(i));
+                }
+                
                 rs = ps.executeQuery();
-                if (rs.next()) {
-                    calculatedTotal += rs.getDouble("total_service_price");
+                while (rs.next()) {
+                    int sId = rs.getInt("service_id");
+                    double price = rs.getDouble("price");
+                    servicePrices.put(sId, price);
+                    totalAmount += price;
                 }
                 rs.close();
                 ps.close();
             }
 
             // =============================================
-            // STEP D: Insert Master Booking Record
+            // STEP 3: Re-Verify Room Availability (Crucial)
             // =============================================
-            String bookingSQL = "INSERT INTO Bookings (user_id, checkin_date, checkout_date, total_amount, payment_status) " +
-                              "VALUES (?, ?, ?, ?, 'paid')";
-            ps = conn.prepareStatement(bookingSQL, PreparedStatement.RETURN_GENERATED_KEYS);
-            ps.setInt(1, userId);
-            ps.setDate(2, checkIn);
-            ps.setDate(3, checkOut);
-            ps.setDouble(4, calculatedTotal);
-            ps.executeUpdate();
+            if (roomIds != null && !roomIds.isEmpty()) {
+                String availabilitySQL = "SELECT COUNT(*) as conflict_count " +
+                                       "FROM BookingRooms br " +
+                                       "JOIN Bookings b ON br.booking_id = b.booking_id " +
+                                       "WHERE br.room_id IN (" + buildPlaceholders(roomIds.size()) + ") " +
+                                       "AND b.checkin_date < ? " +
+                                       "AND b.checkout_date > ?";
 
-            // Get generated booking_id
+                ps = conn.prepareStatement(availabilitySQL);
+                int paramIndex = 1;
+                for (Integer roomId : roomIds) {
+                    ps.setInt(paramIndex++, roomId);
+                }
+                ps.setDate(paramIndex++, checkOut);  // b.checkin_date < checkOut
+                ps.setDate(paramIndex, checkIn);     // b.checkout_date > checkIn
+
+                rs = ps.executeQuery();
+                if (rs.next() && rs.getInt("conflict_count") > 0) {
+                    conn.rollback();
+                    throw new SQLException("One or more rooms are already booked for the selected dates");
+                }
+                rs.close();
+                ps.close();
+            }
+
+            // =============================================
+            // STEP 4: Insert Master Booking Record
+            // =============================================
+            String insertBooking = "INSERT INTO Bookings (user_id, total_amount, checkin_date, checkout_date, payment_status) " +
+                                 "VALUES (?, ?, ?, ?, 'paid')";
+            ps = conn.prepareStatement(insertBooking, Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, userId);
+            ps.setDouble(2, totalAmount);
+            ps.setDate(3, checkIn);
+            ps.setDate(4, checkOut);
+            ps.executeUpdate();
+            
             rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 bookingId = rs.getInt(1);
+            } else {
+                conn.rollback();
+                throw new SQLException("Failed to create booking ID");
             }
             rs.close();
             ps.close();
 
-            if (bookingId == 0) {
-                conn.rollback();
-                throw new SQLException("Failed to retrieve booking ID");
-            }
-
             // =============================================
-            // STEP E: Insert BookingRooms WITH PRICE
+            // STEP 5: Insert BookingRooms WITH price_per_night
             // =============================================
             if (roomIds != null && !roomIds.isEmpty()) {
-                String roomSQL = "INSERT INTO BookingRooms (booking_id, room_id, price_per_night) VALUES (?, ?, ?)";
-                ps = conn.prepareStatement(roomSQL);
-                for (Integer roomId : roomIds) {
-                    ps.setInt(1, bookingId);
-                    ps.setInt(2, roomId);
-                    ps.setDouble(3, roomPriceMap.get(roomId)); // Get price from map
-                    ps.addBatch();
+                String insertRoom = "INSERT INTO BookingRooms (booking_id, room_id, price_per_night) VALUES (?, ?, ?)";
+                ps = conn.prepareStatement(insertRoom);
+                for (Integer rId : roomIds) {
+                    if (roomPrices.containsKey(rId)) {
+                        ps.setInt(1, bookingId);
+                        ps.setInt(2, rId);
+                        ps.setDouble(3, roomPrices.get(rId));
+                        ps.addBatch();
+                    }
                 }
                 ps.executeBatch();
                 ps.close();
             }
 
             // =============================================
-            // STEP F: Insert BookingServices
+            // STEP 6: Insert BookingServices WITH price
             // =============================================
             if (serviceIds != null && !serviceIds.isEmpty()) {
-                String serviceSQL = "INSERT INTO BookingServices (booking_id, service_id) VALUES (?, ?)";
-                ps = conn.prepareStatement(serviceSQL);
-                for (Integer serviceId : serviceIds) {
-                    ps.setInt(1, bookingId);
-                    ps.setInt(2, serviceId);
-                    ps.addBatch();
+                String insertService = "INSERT INTO BookingServices (booking_id, service_id, price, quantity) VALUES (?, ?, ?, 1)";
+                ps = conn.prepareStatement(insertService);
+                for (Integer sId : serviceIds) {
+                    if (servicePrices.containsKey(sId)) {
+                        ps.setInt(1, bookingId);
+                        ps.setInt(2, sId);
+                        ps.setDouble(3, servicePrices.get(sId));
+                        ps.addBatch();
+                    }
                 }
                 ps.executeBatch();
                 ps.close();
             }
 
             // =============================================
-            // STEP G: Insert BookingGuests with Unique Check-in Codes
+            // STEP 7: Insert BookingGuests with UUID Codes
             // =============================================
             if (guestNames != null && !guestNames.isEmpty()) {
-                String guestSQL = "INSERT INTO BookingGuests (booking_id, guest_name, checkin_code) VALUES (?, ?, ?)";
-                ps = conn.prepareStatement(guestSQL);
-                for (String guestName : guestNames) {
+                String insertGuest = "INSERT INTO BookingGuests (booking_id, full_name, checkin_code, checkin_status) VALUES (?, ?, ?, 'pending')";
+                ps = conn.prepareStatement(insertGuest);
+                for (String name : guestNames) {
                     String checkinCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
                     ps.setInt(1, bookingId);
-                    ps.setString(2, guestName);
+                    ps.setString(2, name);
                     ps.setString(3, checkinCode);
                     ps.addBatch();
                 }
@@ -186,7 +204,7 @@ public class BookingDAO extends BaseDAO {
             }
 
             // =============================================
-            // STEP H: Commit Transaction
+            // STEP 8: Commit Transaction
             // =============================================
             conn.commit();
             return bookingId;
@@ -201,7 +219,7 @@ public class BookingDAO extends BaseDAO {
                 }
             }
             e.printStackTrace();
-            throw e;  // Re-throw to let servlet handle
+            throw e;
 
         } finally {
             // Clean up resources
@@ -209,7 +227,7 @@ public class BookingDAO extends BaseDAO {
                 if (rs != null) rs.close();
                 if (ps != null) ps.close();
                 if (conn != null) {
-                    conn.setAutoCommit(true);  // Reset auto-commit
+                    conn.setAutoCommit(true);
                     conn.close();
                 }
             } catch (SQLException e) {
