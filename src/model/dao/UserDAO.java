@@ -1,10 +1,13 @@
 package model.dao;
 
 import model.bean.User;
+import model.bean.CustomerStats;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserDAO extends BaseDAO {
 
@@ -219,5 +222,56 @@ public class UserDAO extends BaseDAO {
             }
         }
         return success;
+    }
+
+    /**
+     * Get customer statistics for admin: number of bookings and rooms used per customer.
+     * Counts distinct bookings and total rooms booked (BookingRooms) for each customer.
+     */
+    public List<CustomerStats> getCustomerRoomUsageStats() {
+        List<CustomerStats> stats = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT u.user_id, u.username, u.full_name, u.email, " +
+                         "       COUNT(DISTINCT b.booking_id) AS booking_count, " +
+                         "       COUNT(br.room_id) AS room_count " +
+                         "FROM Users u " +
+                         "LEFT JOIN Bookings b ON u.user_id = b.user_id " +
+                         "LEFT JOIN BookingRooms br ON b.booking_id = br.booking_id " +
+                         "WHERE u.role = 'customer' " +
+                         "GROUP BY u.user_id, u.username, u.full_name, u.email " +
+                         "ORDER BY room_count DESC, booking_count DESC, u.full_name ASC";
+
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                CustomerStats stat = new CustomerStats();
+                stat.setUserId(rs.getInt("user_id"));
+                stat.setUsername(rs.getString("username"));
+                stat.setFullName(rs.getString("full_name"));
+                stat.setEmail(rs.getString("email"));
+                stat.setBookingCount(rs.getInt("booking_count"));
+                stat.setRoomCount(rs.getInt("room_count"));
+                stats.add(stat);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return stats;
     }
 }

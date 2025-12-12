@@ -67,6 +67,11 @@
         <servlet-class>controller.admin.AdminCheckinServlet</servlet-class>
     </servlet>
     
+    <servlet>
+        <servlet-name>AdminRevenueServlet</servlet-name>
+        <servlet-class>controller.admin.AdminRevenueServlet</servlet-class>
+    </servlet>
+    
     <!-- Client Module Servlets -->
     <servlet>
         <servlet-name>SearchServlet</servlet-name>

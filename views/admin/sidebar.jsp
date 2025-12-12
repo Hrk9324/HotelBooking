@@ -38,6 +38,18 @@
                 <i class="bi bi-person-check"></i> Check-in
             </a>
         </li>
+        <li class="nav-item">
+            <a href="${pageContext.request.contextPath}/admin/revenue" 
+               class="nav-link ${pageContext.request.requestURI.contains('revenue') ? 'active' : ''}">
+                <i class="bi bi-bar-chart"></i> Revenue Statistics
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="${pageContext.request.contextPath}/admin/customer-stats" 
+               class="nav-link ${pageContext.request.requestURI.contains('customer-stats') ? 'active' : ''}">
+                <i class="bi bi-people-fill"></i> Customer Usage
+            </a>
+        </li>
         <li class="nav-item mt-3">
             <a href="${pageContext.request.contextPath}/logout" 
                class="nav-link text-danger">

@@ -1,12 +1,12 @@
 package model.dao;
 
-import model.bean.Room;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import model.bean.Room;
 
 public class RoomDAO extends BaseDAO {
 
@@ -128,14 +128,14 @@ public class RoomDAO extends BaseDAO {
                      "    SELECT br.room_id " +
                      "    FROM BookingRooms br " +
                      "    JOIN Bookings b ON br.booking_id = b.booking_id " +
-                     "    WHERE b.checkin_date < ? AND b.checkout_date > ?" +
+                     "    WHERE b.checkin_date <= ? AND b.checkout_date >= ?" +
                      ")";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setDate(1, checkOut);  // b.checkin_date < checkOut
-            ps.setDate(2, checkIn);   // b.checkout_date > checkIn
+            ps.setDate(1, checkOut);  // b.checkin_date <= checkOut
+            ps.setDate(2, checkIn);   // b.checkout_date >= checkIn
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -168,15 +168,15 @@ public class RoomDAO extends BaseDAO {
                      "    SELECT br.room_id " +
                      "    FROM BookingRooms br " +
                      "    JOIN Bookings b ON br.booking_id = b.booking_id " +
-                     "    WHERE b.checkin_date < ? AND b.checkout_date > ?" +
+                     "    WHERE b.checkin_date <= ? AND b.checkout_date >= ?" +
                      ")";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, hotelId);
-            ps.setDate(2, checkOut);  // b.checkin_date < checkOut
-            ps.setDate(3, checkIn);   // b.checkout_date > checkIn
+            ps.setDate(2, checkOut);  // b.checkin_date <= checkOut
+            ps.setDate(3, checkIn);   // b.checkout_date >= checkIn
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

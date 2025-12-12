@@ -46,8 +46,8 @@ public class SearchServlet extends HttpServlet {
             checkOut = new Date(sdf.parse(checkOutStr).getTime());
             people = Integer.parseInt(peopleStr);
 
-            // Validate date logic
-            if (checkOut.before(checkIn) || checkOut.equals(checkIn)) {
+            // Validate date logic - allow same-day check-in and check-out
+            if (checkOut.before(checkIn)) {
                 response.sendRedirect(request.getContextPath() + "/?error=invalid_dates");
                 return;
             }

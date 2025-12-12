@@ -1,20 +1,21 @@
 package model.dao;
 
-import model.bean.Booking;
-import model.bean.BookingGuest;
-import model.bean.BookingService;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import model.bean.Booking;
+import model.bean.BookingGuest;
+import model.bean.BookingService;
+import model.bean.RevenueStats;
 
 public class BookingDAO extends BaseDAO {
 
@@ -130,8 +131,8 @@ public class BookingDAO extends BaseDAO {
                                        "FROM BookingRooms br " +
                                        "JOIN Bookings b ON br.booking_id = b.booking_id " +
                                        "WHERE br.room_id IN (" + buildPlaceholders(roomIds.size()) + ") " +
-                                       "AND b.checkin_date < ? " +
-                                       "AND b.checkout_date > ?";
+                                       "AND b.checkin_date <= ? " +
+                                       "AND b.checkout_date >= ?";
 
                 ps = conn.prepareStatement(availabilitySQL);
                 int paramIndex = 1;
@@ -577,5 +578,274 @@ public class BookingDAO extends BaseDAO {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Get revenue statistics by day
+     * Groups bookings by check-in date and sums paid bookings
+     */
+    public List<RevenueStats> getRevenueByDay(int year, int month) throws SQLException {
+        List<RevenueStats> results = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT DATE_FORMAT(checkin_date, '%Y-%m-%d') as period, " +
+                        "SUM(total_amount) as total_revenue, COUNT(*) as booking_count " +
+                        "FROM Bookings " +
+                        "WHERE YEAR(checkin_date) = ? AND MONTH(checkin_date) = ? " +
+                        "AND payment_status = 'paid' " +
+                        "GROUP BY DATE(checkin_date) " +
+                        "ORDER BY checkin_date ASC";
+
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                String period = rs.getString("period");
+                double totalRevenue = rs.getDouble("total_revenue");
+                int bookingCount = rs.getInt("booking_count");
+                results.add(new RevenueStats(period, totalRevenue, bookingCount));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Get revenue statistics by month
+     * Groups bookings by month and sums paid bookings
+     */
+    public List<RevenueStats> getRevenueByMonth(int year) throws SQLException {
+        List<RevenueStats> results = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT DATE_FORMAT(checkin_date, '%Y-%m') as period, " +
+                        "SUM(total_amount) as total_revenue, COUNT(*) as booking_count " +
+                        "FROM Bookings " +
+                        "WHERE YEAR(checkin_date) = ? " +
+                        "AND payment_status = 'paid' " +
+                        "GROUP BY YEAR(checkin_date), MONTH(checkin_date) " +
+                        "ORDER BY checkin_date ASC";
+
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, year);
+
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                String period = rs.getString("period");
+                double totalRevenue = rs.getDouble("total_revenue");
+                int bookingCount = rs.getInt("booking_count");
+                results.add(new RevenueStats(period, totalRevenue, bookingCount));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Get revenue statistics by year
+     * Groups bookings by year and sums paid bookings
+     */
+    public List<RevenueStats> getRevenueByYear() throws SQLException {
+        List<RevenueStats> results = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT YEAR(checkin_date) as period, " +
+                        "SUM(total_amount) as total_revenue, COUNT(*) as booking_count " +
+                        "FROM Bookings " +
+                        "WHERE payment_status = 'paid' " +
+                        "GROUP BY YEAR(checkin_date) " +
+                        "ORDER BY checkin_date ASC";
+
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+                String period = rs.getString("period");
+                double totalRevenue = rs.getDouble("total_revenue");
+                int bookingCount = rs.getInt("booking_count");
+                results.add(new RevenueStats(period, totalRevenue, bookingCount));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Get total revenue for a specific date range
+     */
+    public double getTotalRevenue(Date startDate, Date endDate) throws SQLException {
+        double total = 0;
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT SUM(total_amount) as total FROM Bookings " +
+                        "WHERE checkin_date >= ? AND checkin_date <= ? " +
+                        "AND payment_status = 'paid'";
+
+            ps = conn.prepareStatement(sql);
+            ps.setDate(1, startDate);
+            ps.setDate(2, endDate);
+
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                total = rs.getDouble("total");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return total;
+    }
+
+    /**
+     * Get revenue statistics for a specific month and year
+     * Used for monthly view when a specific month is selected
+     */
+    public RevenueStats getRevenueByMonthAndYear(int year, int month) throws SQLException {
+        RevenueStats result = new RevenueStats();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String sql = "SELECT DATE_FORMAT(checkin_date, '%Y-%m') as period, " +
+                        "SUM(total_amount) as total_revenue, COUNT(*) as booking_count " +
+                        "FROM Bookings " +
+                        "WHERE YEAR(checkin_date) = ? AND MONTH(checkin_date) = ? " +
+                        "AND payment_status = 'paid' " +
+                        "GROUP BY YEAR(checkin_date), MONTH(checkin_date)";
+
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                String period = rs.getString("period");
+                double totalRevenue = rs.getDouble("total_revenue");
+                int bookingCount = rs.getInt("booking_count");
+                result = new RevenueStats(period, totalRevenue, bookingCount);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return result;
+    }
+
+    public List<Booking> getBookingsByDate(String dateStr) throws SQLException {
+        List<Booking> bookings = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+
+        try {
+            conn = getConnection();
+            String bookingSql = "SELECT b.booking_id, b.user_id, b.checkin_date, b.checkout_date, " +
+                    "b.total_amount, b.payment_status, b.created_at, u.username, u.email " +
+                    "FROM Bookings b " +
+                    "JOIN Users u ON b.user_id = u.user_id " +
+                    "WHERE DATE(b.checkin_date) >= ? " +
+                    "AND b.payment_status = 'paid' " +
+                    "ORDER BY b.checkin_date ASC";
+
+            ps = conn.prepareStatement(bookingSql);
+            ps.setString(1, dateStr);
+
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Booking booking = new Booking();
+                booking.setBookingId(rs.getInt("booking_id"));
+                booking.setUserId(rs.getInt("user_id"));
+                booking.setCheckinDate(rs.getDate("checkin_date"));
+                booking.setCheckoutDate(rs.getDate("checkout_date"));
+                booking.setTotalAmount(rs.getDouble("total_amount"));
+                booking.setPaymentStatus(rs.getString("payment_status"));
+                booking.setCreatedAt(rs.getTimestamp("created_at"));
+                bookings.add(booking);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return bookings;
     }
 }

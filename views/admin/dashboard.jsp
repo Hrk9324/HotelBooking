@@ -79,6 +79,15 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="card text-white bg-warning mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Revenue</h5>
+                                        <p class="card-text">View revenue statistics</p>
+                                        <a href="${pageContext.request.contextPath}/admin/revenue" class="btn btn-light btn-sm">View Revenue</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

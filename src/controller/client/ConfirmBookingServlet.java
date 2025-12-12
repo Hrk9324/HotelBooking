@@ -86,8 +86,8 @@ public class ConfirmBookingServlet extends HttpServlet {
             Date checkIn = new Date(utilCheckIn.getTime());
             Date checkOut = new Date(utilCheckOut.getTime());
 
-            // Validate date order
-            if (!checkIn.before(checkOut)) {
+            // Validate date order - allow same-day check-in and check-out
+            if (checkOut.before(checkIn)) {
                 response.sendRedirect("hotel-detail?id=" + hotelId + 
                                     "&checkin=" + checkinParam + 
                                     "&checkout=" + checkoutParam + 
